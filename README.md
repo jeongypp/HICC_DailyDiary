@@ -23,5 +23,5 @@ API: Google Geminai 3.0 Flash API
 
 # 팀원 소개
 이선우(FE,DESIGN)
-노규진(BE,DB)
-류정엽(BE,API)
+노규진(BE,QA)
+류정엽(BE,PM)
