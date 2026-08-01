@@ -1,4 +1,10 @@
 package com.hicc.dailydiary.global.exception;
 
-public class CustomException {
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public class CustomException extends RuntimeException {
+    private final ErrorCode errorCode;
 }
