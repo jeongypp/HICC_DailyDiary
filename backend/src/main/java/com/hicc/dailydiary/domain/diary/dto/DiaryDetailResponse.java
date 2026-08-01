@@ -2,9 +2,12 @@ package com.hicc.dailydiary.domain.diary.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
+import lombok.AllArgsConstructor;
+
 import java.util.List;
 
 @Getter
+@AllArgsConstructor
 @Schema(description = "일기 상세 정보 응답 DTO")
 public class DiaryDetailResponse {
 

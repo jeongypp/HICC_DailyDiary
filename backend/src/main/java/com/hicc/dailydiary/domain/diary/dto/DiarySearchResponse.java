@@ -2,8 +2,10 @@ package com.hicc.dailydiary.domain.diary.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
+import lombok.AllArgsConstructor;
 
 @Getter
+@AllArgsConstructor
 @Schema(description = "일기 검색 결과 DTO")
 public class DiarySearchResponse {
 
