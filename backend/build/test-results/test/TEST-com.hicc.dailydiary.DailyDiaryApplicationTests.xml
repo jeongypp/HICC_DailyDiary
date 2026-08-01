@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.hicc.dailydiary.DailyDiaryApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-01T05:21:39.430Z" hostname="nogyujin-ui-MacBookAir.local" time="1.745">
+  <properties/>
+  <testcase name="contextLoads()" classname="com.hicc.dailydiary.DailyDiaryApplicationTests" time="0.304"/>
+  <system-out><![CDATA[14:21:39.496 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.hicc.dailydiary.DailyDiaryApplicationTests]: DailyDiaryApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+14:21:39.538 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.hicc.dailydiary.DailyDiaryApplication for test class com.hicc.dailydiary.DailyDiaryApplicationTests
+14:21:39.567 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.hicc.dailydiary.DailyDiaryApplicationTests]: DailyDiaryApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+14:21:39.567 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.hicc.dailydiary.DailyDiaryApplication for test class com.hicc.dailydiary.DailyDiaryApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.7)
+
+2026-08-01T14:21:39.700+09:00  INFO 44017 --- [backend] [    Test worker] c.h.d.DailyDiaryApplicationTests         : Starting DailyDiaryApplicationTests using Java 21.0.10 with PID 44017 (started by nogyujin in /Users/nogyujin/Desktop/HICC_DailyDiary/backend)
+2026-08-01T14:21:39.701+09:00  INFO 44017 --- [backend] [    Test worker] c.h.d.DailyDiaryApplicationTests         : No active profile set, falling back to 1 default profile: "default"
+2026-08-01T14:21:39.972+09:00  INFO 44017 --- [backend] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-01T14:21:39.981+09:00  INFO 44017 --- [backend] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 5 ms. Found 0 JPA repository interfaces.
+2026-08-01T14:21:40.127+09:00  INFO 44017 --- [backend] [    Test worker] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-01T14:21:40.146+09:00  INFO 44017 --- [backend] [    Test worker] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.19.Final
+2026-08-01T14:21:40.297+09:00  INFO 44017 --- [backend] [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-01T14:21:40.310+09:00  INFO 44017 --- [backend] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-01T14:21:40.379+09:00  INFO 44017 --- [backend] [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:dailydiary user=SA
+2026-08-01T14:21:40.380+09:00  INFO 44017 --- [backend] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-01T14:21:40.402+09:00  INFO 44017 --- [backend] [    Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:dailydiary]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: DAILYDIARY/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-01T14:21:40.555+09:00  INFO 44017 --- [backend] [    Test worker] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-01T14:21:40.559+09:00  INFO 44017 --- [backend] [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-01T14:21:40.642+09:00  WARN 44017 --- [backend] [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-01T14:21:40.821+09:00  INFO 44017 --- [backend] [    Test worker] o.s.b.h.a.H2ConsoleAutoConfiguration     : H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:dailydiary'
+2026-08-01T14:21:40.865+09:00  INFO 44017 --- [backend] [    Test worker] c.h.d.DailyDiaryApplicationTests         : Started DailyDiaryApplicationTests in 1.271 seconds (process running for 1.758)
+2026-08-01T14:21:40.866+09:00  WARN 44017 --- [backend] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-08-01T14:21:40.866+09:00  WARN 44017 --- [backend] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/Users/nogyujin/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.8/f09415827a71be7ed621c7bd02550678f28bc81c/byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>
