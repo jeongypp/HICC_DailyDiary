@@ -17,20 +17,18 @@ public class StatisticsController {
 
     private final StatisticsService statisticsService;
 
-    @Operation(summary = "주간 통계 조회", description = "특정 1주일(시작일~종료일)의 통계와 일기 데이터를 조회합니다. 날짜 형식은 YYYY-MM-DD 입니다.")
-    @GetMapping("/weekly")
-    public ApiResponse<StatisticsResponseDto> getWeeklyStatistics(
+    @Operation(summary = "월간(달력) 통계 조회", description = "특정 1달(시작일~종료일)의 통계와 일기 데이터를 조회합니다.")
+    @GetMapping("/monthly")  // weekly에서 monthly로 변경
+    public ApiResponse<StatisticsResponseDto> getMonthlyStatistics(
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        // Service 호출로 통계 데이터 가져오기
-        StatisticsResponseDto response = statisticsService.getWeeklyStatistics(startDate, endDate);
+        StatisticsResponseDto response = statisticsService.getMonthlyStatistics(startDate, endDate);
 
-        // DiaryController와 동일한 ApiResponse.success 규격 적용
         return ApiResponse.success(
                 200,
-                "STATISTICS_WEEKLY_SUCCESS",
-                "주간 통계 조회 성공",
+                "STATISTICS_MONTHLY_SUCCESS", // 커스텀 상태코드도 월간으로 변경
+                "월간 달력 통계 조회 성공",
                 response
         );
     }

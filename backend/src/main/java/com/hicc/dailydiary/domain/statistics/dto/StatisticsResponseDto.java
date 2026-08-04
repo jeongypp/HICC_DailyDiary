@@ -3,7 +3,6 @@ package com.hicc.dailydiary.domain.statistics.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 @Getter
@@ -13,13 +12,32 @@ public class StatisticsResponseDto {
     private String startDate;
     private String endDate;
     private Long totalCount;
+
+    // 🌟 플로우 다이어그램 반영 (누락됐던 월간 종합 통계 추가)
+    private double monthlyAverageScore; // 이번 달 평균 총점
+    private double monthlyAvgDomain1;   // 이번 달 레이더 차트 영역 1 평균
+    private double monthlyAvgDomain2;
+    private double monthlyAvgDomain3;
+    private double monthlyAvgDomain4;
+    private double monthlyAvgDomain5;
+
     private List<DailyScoreDto> dailyScores;
 
     @Builder
-    public StatisticsResponseDto(String startDate, String endDate, Long totalCount, List<DailyScoreDto> dailyScores) {
+    public StatisticsResponseDto(String startDate, String endDate, Long totalCount,
+                                 double monthlyAverageScore, double monthlyAvgDomain1,
+                                 double monthlyAvgDomain2, double monthlyAvgDomain3,
+                                 double monthlyAvgDomain4, double monthlyAvgDomain5,
+                                 List<DailyScoreDto> dailyScores) {
         this.startDate = startDate;
         this.endDate = endDate;
         this.totalCount = totalCount;
+        this.monthlyAverageScore = monthlyAverageScore;
+        this.monthlyAvgDomain1 = monthlyAvgDomain1;
+        this.monthlyAvgDomain2 = monthlyAvgDomain2;
+        this.monthlyAvgDomain3 = monthlyAvgDomain3;
+        this.monthlyAvgDomain4 = monthlyAvgDomain4;
+        this.monthlyAvgDomain5 = monthlyAvgDomain5;
         this.dailyScores = dailyScores;
     }
 
