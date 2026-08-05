@@ -2,6 +2,9 @@ spring:
   application:
     name: backend
 
+  jackson:
+    property-naming-strategy: SNAKE_CASE # API 통신 시 명세서에 맞는 언더바 형식으로 통일
+
   datasource:
     driver-class-name: org.h2.Driver
     url: jdbc:h2:mem:dailydiary;MODE=MySQL # MySQL 모드로 실행하여 문법 호환성 유지
