@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 2. 일기 내용 수정 기능
 @Getter
 @NoArgsConstructor
 @Schema(description = "일기 내용 수정 요청 DTO")
@@ -20,6 +21,6 @@ public class DiaryUpdateRequest {
     @Schema(description = "수정할 원본 점수 5", example = "9")
     private Integer score5; //[cite: 2]
 
-    @Schema(description = "수정할 메모", example = "비가 그쳤다! #맑음", nullable = true)
+    @Schema(description = "수정할 메모", example = "비가 그쳤다!", nullable = true)
     private String memo; //[cite: 2]
 }
