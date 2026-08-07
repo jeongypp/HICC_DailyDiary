@@ -13,7 +13,7 @@ public class DiaryCreateRequest {
     @Schema(description = "일기 작성 날짜", example = "2026-07-22")
     private String diaryDate; //[cite: 3]
 
-    @Schema(description = "적용된 키워드 이름 버전", example = "1")
+    @Schema(description = "적용된 영역 이름 버전", example = "1")
     private Integer domainId;
 
     @Schema(description = "적용된 가중치 버전", example = "1")
