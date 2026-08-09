@@ -35,3 +35,9 @@ springdoc:
     display-request-duration: true
   api-docs:
     path: /api-docs
+
+# Gemini AI API 환경변수 매핑
+gemini:
+  api:
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent
+    key: ${GEMINI_API_KEY:default_key}
