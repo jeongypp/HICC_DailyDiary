@@ -1,6 +1,8 @@
 package com.hicc.dailydiary.infrastructure.ai;
 
 import com.hicc.dailydiary.domain.ai.AiService;
+import com.hicc.dailydiary.global.exception.CustomException;
+import com.hicc.dailydiary.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -31,16 +33,24 @@ public class GeminiApiClient implements AiService {
     }
 
     @Override
-    public String getAiFeedback(String diaryContent) {
+    public String getAiFeedback(List<String> domains, List<Integer> scores, String memo) {
         // API Key 유효성 사전 체크
         if ("default_key".equals(apiKey) || apiKey == null || apiKey.isBlank()) {
             System.err.println("[GeminiApiClient] ⚠️ GEMINI_API_KEY 환경변수가 설정되지 않았습니다.");
             return "AI 피드백을 생성하려면 Gemini API 키 설정이 필요합니다.";
         }
 
-        // 1. 프롬프트 구성: 일기 내용을 바탕으로 공감과 위로의 피드백을 작성하도록 지시
-        String prompt = "다음 일기를 읽고, 친구처럼 다정하게 공감하고 위로해주는 짧은 피드백을 한국어로 2~3문" +
-                "장으로 작성해 줘:\n" + diaryContent;
+        // 1. 프롬프트 구성: 영역별 점수와 일기 메모를 조합
+        StringBuilder sb = new StringBuilder();
+        sb.append("다음 일기 내용을 읽고, 친구처럼 다정하게 공감하고 위로해주는 짧은 피드백을 한국어로 2~3문장으로 작성해 줘:\n\n");
+        sb.append("[오늘의 영역별 평가 점수]\n");
+        for (int i = 0; i < 5; i++) {
+            sb.append("- ").append(domains.get(i)).append(": ").append(scores.get(i)).append("점 (최대 10점)\n");
+        }
+        sb.append("\n[추가 메모(일기)]\n");
+        sb.append(memo != null && !memo.isBlank() ? memo : "특별한 메모는 남기지 않았어요.");
+        
+        String prompt = sb.toString();
 
         // 2. Gemini API 요청 바디 구성
         Map<String, Object> requestBody = Map.of(
@@ -75,32 +85,35 @@ public class GeminiApiClient implements AiService {
                     }
                 }
                 System.err.println("[GeminiApiClient] ⚠️ 예기치 못한 응답 구조: " + body);
-                return "오늘 하루도 고생했어요. 푹 쉬세요!";
+                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
 
+                /* 
+                 * [백엔드 개발 단계의 에러 핸들링]
+                 * 기존 429, 404 등의 세부 에러 핸들링은 명세서에 정의된 
+                 * AI_SERVER_ERROR (500) 로 통합하기 위해 주석 처리합니다.
+                 *
             } catch (HttpClientErrorException.TooManyRequests e) {
-                // 429 에러: 토큰 할당량 초과 → 대기 후 재시도
-                long waitSeconds = attempt * 10L; // 10초, 20초, 30초 순으로 대기
+                long waitSeconds = attempt * 10L;
                 System.err.println("[GeminiApiClient] ⏳ 429 할당량 초과 (시도 " + attempt + ") → " + waitSeconds + "초 후 재시도...");
                 try {
                     Thread.sleep(waitSeconds * 1000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    return "AI 피드백 생성이 중단되었습니다.";
+                    throw new CustomException(ErrorCode.AI_SERVER_ERROR);
                 }
             } catch (HttpClientErrorException e) {
-                // 401, 403, 404 등 기타 HTTP 에러 상세 출력
                 System.err.println("[GeminiApiClient] ❌ HTTP 에러: " + e.getStatusCode() + " - " + e.getStatusText());
                 System.err.println("[GeminiApiClient] ❌ 구글 API 상세 에러 내용: " + e.getResponseBodyAsString());
-                return "AI 서비스 연결에 문제가 있습니다. 잠시 후 다시 시도해주세요.";
+                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+                 */
             } catch (Exception e) {
                 System.err.println("[GeminiApiClient] ❌ Gemini API 호출 실패: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-                return "AI 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
             }
         }
 
-
         // 3번 재시도 후에도 실패
-        System.err.println("[GeminiApiClient] ❌ " + MAX_RETRIES + "회 재시도 후에도 429 에러 지속.");
-        return "AI 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.";
+        System.err.println("[GeminiApiClient] ❌ " + MAX_RETRIES + "회 재시도 후에도 실패 지속.");
+        throw new CustomException(ErrorCode.AI_SERVER_ERROR);
     }
 }

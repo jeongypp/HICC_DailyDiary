@@ -32,8 +32,10 @@ public class DiaryService {
         // TODO: AI API 연결 후 실제 값으로 교체
         // Mock API 호출 (실제 구현 전 임시용)
         String weatherMock = weatherService.getWeatherCondition(60, 127); // 서울 좌표 임시 사용
-        String aiReplyMock = aiService.getAiFeedback(request.getMemo() != null && !request.getMemo().isBlank() 
-                ? request.getMemo() : "특별한 일 없이 무난한 하루였어요.");
+        
+        List<String> domainNames = getMockDomainNames(request.getDomainId());
+        List<Integer> scores = List.of(request.getScore1(), request.getScore2(), request.getScore3(), request.getScore4(), request.getScore5());
+        String aiReplyMock = aiService.getAiFeedback(domainNames, scores, request.getMemo());
 
         Diary diary = Diary.builder()
                 .diaryDate(request.getDiaryDate())
@@ -69,8 +71,9 @@ public class DiaryService {
 
         // TODO: AI API 연결 후 실제 값으로 교체
         // 메모 수정 -> AI 피드백 재생성
-        String aiReplyMock = aiService.getAiFeedback(request.getMemo() != null && !request.getMemo().isBlank() 
-                ? request.getMemo() : "특별한 일 없이 무난한 하루였어요.");
+        List<String> domainNames = getMockDomainNames(diary.getDomainId());
+        List<Integer> updatedScores = List.of(request.getScore1(), request.getScore2(), request.getScore3(), request.getScore4(), request.getScore5());
+        String aiReplyMock = aiService.getAiFeedback(domainNames, updatedScores, request.getMemo());
         diary.updateAiReply(aiReplyMock);
 
         return diary.getId();
@@ -152,18 +155,7 @@ public class DiaryService {
         }).toList();
     }
 
-    // TODO: setting >> SettingService 호출로 실제 값 교체
-    private List<Integer> getMockWeights(Integer weightId) {
-        // 실제로는 weight_id를 통해 weight 테이블에서 weight1_value ~ weight5_value 를 조회해와야 함.
-        return List.of(1, 2, 3, 2, 1); // 임시 가중치 값 (1~10배)
-    }
-
-    // TODO: setting 패키지 로직 pull 이후 협업 개발자의 서비스 호출로 교체할 임시 Mock 메서드
-    private List<String> getMockDomainNames(Integer domainId) {
-        // 실제로는 domain_id를 통해 domain 테이블에서 domain1_name ~ domain5_name 을 조회해와야 함.
-        return List.of("수면", "식사", "학업", "관계", "운동");
-    }
-
+    // 일기 검색 시 메모 프리뷰 기능(검색 키워드 볼드체 처리)
     private String generateMemoPreview(String memo, String keyword) {
         if (memo == null || memo.isBlank()) return "";
         if (keyword == null || keyword.isBlank() || !memo.contains(keyword)) {
@@ -183,4 +175,17 @@ public class DiaryService {
 
         return prefix + highlighted + suffix;
     }
+
+    // TODO: setting >> SettingService 호출로 실제 값 교체
+    private List<Integer> getMockWeights(Integer weightId) {
+        // 실제로는 weight_id를 통해 weight 테이블에서 weight1_value ~ weight5_value 를 조회해와야 함.
+        return List.of(1, 2, 3, 2, 1); // 임시 가중치 값 (1~10배)
+    }
+
+    // TODO: setting 패키지 로직 pull 이후 실제 값으로 교체
+    private List<String> getMockDomainNames(Integer domainId) {
+        // 실제로는 domain_id를 통해 domain 테이블에서 domain1_name ~ domain5_name 을 조회해와야 함.
+        return List.of("수면", "식사", "학업", "관계", "운동");
+    }
+
 }
