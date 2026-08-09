@@ -116,15 +116,14 @@ public class DiaryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
 
         List<String> domainNames = getMockDomainNames(diary.getDomainId());
-        List<Integer> weights = getMockWeights(diary.getWeightId());
 
-        // 각 영역 원점수에 가중치(1~10배)를 곱해 최종 점수 산출
-        List<Integer> weightedScores = List.of(
-                diary.getScore1() * weights.get(0),
-                diary.getScore2() * weights.get(1),
-                diary.getScore3() * weights.get(2),
-                diary.getScore4() * weights.get(3),
-                diary.getScore5() * weights.get(4)
+        // 가중치 미반영 원점수(오각형 차트 UI)
+        List<Integer> domainScores = List.of(
+                diary.getScore1(),
+                diary.getScore2(),
+                diary.getScore3(),
+                diary.getScore4(),
+                diary.getScore5()
         );
 
         return new DiaryDetailResponse(
@@ -132,7 +131,7 @@ public class DiaryService {
                 diary.getDiaryDate(),
                 diary.getWeather(),
                 domainNames,
-                weightedScores,
+                domainScores,
                 diary.getMemo(),
                 diary.getAiReply()
         );
