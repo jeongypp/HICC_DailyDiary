@@ -18,7 +18,8 @@ public enum ErrorCode {
     DIARY_ALREADY_EXISTS(409, "DIARY_ALREADY_EXISTS", "해당 날짜에 이미 일기가 존재합니다."),
 
     // 500 Internal Server Error
-    INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다."),
+    AI_SERVER_ERROR(500, "AI_SERVER_ERROR", "AI API 서버 연동 실패");
 
     private final int status;
     private final String code;
