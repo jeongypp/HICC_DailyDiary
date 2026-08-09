@@ -15,9 +15,22 @@ public class StatisticsController {
 
     private final StatisticsService statisticsService;
 
-    @GetMapping
-    public ResponseEntity<StatisticsResponseDto> getStatistics() {
-        StatisticsResponseDto response = statisticsService.getStatistics();
+    /**
+     * 주간 평균 감정 점수 조회[cite: 1]
+     */
+    @GetMapping("/average")
+    public ResponseEntity<StatisticsResponseDto.WeeklyAverageResponse> getWeeklyAverage() {
+        StatisticsResponseDto.WeeklyAverageResponse response = statisticsService.getWeeklyAverageScore();
+        // 실제 프로젝트의 공통 Response 포맷에 맞춰 수정 (예: return ApiResponse.success(response);)
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 주간 감정 점수 추세 조회 (최근 7일)[cite: 2]
+     */
+    @GetMapping("/weekly")
+    public ResponseEntity<StatisticsResponseDto.WeeklyTrendResponse> getWeeklyTrend() {
+        StatisticsResponseDto.WeeklyTrendResponse response = statisticsService.getWeeklyTrend();
         return ResponseEntity.ok(response);
     }
 }
