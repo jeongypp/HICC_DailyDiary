@@ -13,22 +13,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // 클래스 레벨: 기본적으로 읽기 전용 적용
+@Transactional(readOnly = true)
 public class SettingService {
 
     private final DomainRepository domainRepository;
     private final WeightRepository weightRepository;
 
-    // [기존 로직] 최신 도메인 및 가중치 조회 (GET)
+    // [수정된 로직] 진짜 '최신(Latest)' 도메인 및 가중치 조회 (GET)
     public DomainLatestResponseDto getLatestDomainAndWeight() {
-        // API 명세서에 따라 MVP 기준 식별번호 = 1 고정으로 조회합니다.
-        Domain domain = domainRepository.findById(1L)
-                .orElseThrow(() -> new IllegalArgumentException("DOMAIN_NOT_FOUND: 초기 설정 데이터가 없습니다.")); // 404 에러 상황
+        // 하드코딩된 1L을 빼고, DB에서 가장 마지막에 저장된(ID가 가장 큰) 데이터를 가져옵니다.
+        Domain domain = domainRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new IllegalArgumentException("DOMAIN_NOT_FOUND: 설정된 도메인 데이터가 없습니다."));
 
-        Weight weight = weightRepository.findById(1L)
-                .orElseThrow(() -> new IllegalArgumentException("DOMAIN_NOT_FOUND: 초기 설정 데이터가 없습니다.")); // 404 에러 상황
+        Weight weight = weightRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new IllegalArgumentException("WEIGHT_NOT_FOUND: 설정된 가중치 데이터가 없습니다."));
 
-        // DB에서 가져온 실제 엔티티 데이터를 DTO에 매핑하여 반환합니다.
         return DomainLatestResponseDto.builder()
                 .weightId(weight.getId())
                 .domainId(domain.getId())
@@ -45,11 +44,10 @@ public class SettingService {
                 .build();
     }
 
-    // [추가된 로직] 새로운 도메인 및 가중치 생성 (POST)
-    @Transactional // ★ 중요: 데이터를 저장(Insert)해야 하므로 readOnly를 덮어씁니다!
+    // [기존 로직 유지] 새로운 도메인 및 가중치 생성 (POST)
+    @Transactional
     public SettingResponseDto.CreateResponse createDomainAndWeight(SettingRequestDto request) {
 
-        // 1. 새로운 도메인(키워드) 엔티티 생성 및 저장 (기존 데이터 덮어쓰기 아님)[cite: 1]
         Domain newDomain = Domain.builder()
                 .domain1Name(request.getDomain1Name())
                 .domain2Name(request.getDomain2Name())
@@ -59,7 +57,6 @@ public class SettingService {
                 .build();
         Domain savedDomain = domainRepository.save(newDomain);
 
-        // 2. 새로운 가중치 엔티티 생성 및 저장[cite: 1]
         Weight newWeight = Weight.builder()
                 .weight1Value(request.getWeight1Value())
                 .weight2Value(request.getWeight2Value())
@@ -69,7 +66,6 @@ public class SettingService {
                 .build();
         Weight savedWeight = weightRepository.save(newWeight);
 
-        // 3. 새로 발급된 ID를 DTO에 담아 반환[cite: 1]
         return SettingResponseDto.CreateResponse.builder()
                 .domainId(savedDomain.getId())
                 .weightId(savedWeight.getId())
