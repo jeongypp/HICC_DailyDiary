@@ -4,9 +4,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Setter;
+
 // 2. 일기 내용 수정 기능
 @Getter
+@Setter
 @NoArgsConstructor
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Schema(description = "일기 내용 수정 요청 DTO")
 public class DiaryUpdateRequest {
 
