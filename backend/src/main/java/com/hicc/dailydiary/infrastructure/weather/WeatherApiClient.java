@@ -1,15 +1,5 @@
 package com.hicc.dailydiary.infrastructure.weather;
 
-import com.hicc.dailydiary.domain.weather.WeatherService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hicc.dailydiary.domain.weather.WeatherService;
@@ -17,6 +7,14 @@ import com.hicc.dailydiary.global.exception.CustomException;
 import com.hicc.dailydiary.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Component
 public class WeatherApiClient implements WeatherService {
@@ -41,8 +39,9 @@ public class WeatherApiClient implements WeatherService {
         }
 
         // 단기예보(getVilageFcst) 특성상 특정 base_time(0200, 0500, 0800, 1100, 1400, 1700, 2000, 2300)이 필요
-        // 사용자의 일기 생성 시각 기준 가까운 base_time 계산 로직
-        LocalDateTime now = LocalDateTime.now();
+        // ★ 타임존 버그 수정 유지: 클라우드 환경에서도 항상 한국 시간(KST)을 기준으로 하도록 명시
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+
         if (now.getMinute() < 10) {
             now = now.minusHours(1);
         }
@@ -52,15 +51,16 @@ public class WeatherApiClient implements WeatherService {
             baseHour = 23;
             now = now.minusDays(1);
         }
-        
+
         String baseDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String baseTime = String.format("%02d00", baseHour);
 
         // URL 및 쿼리 파라미터 구성
         URI uri = UriComponentsBuilder.fromUriString(apiUrl)
-                .queryParam("serviceKey", apiKey) 
+                .queryParam("serviceKey", apiKey)
                 .queryParam("pageNo", 1)
-                .queryParam("numOfRows", 10)
+                // ★ 데이터 누락 버그 수정 유지: 한 번에 받아오는 데이터 개수를 10 -> 30으로 늘림
+                .queryParam("numOfRows", 30)
                 .queryParam("dataType", "JSON")
                 .queryParam("base_date", baseDate)
                 .queryParam("base_time", baseTime)
@@ -97,7 +97,7 @@ public class WeatherApiClient implements WeatherService {
             // PTY (강수형태): 0(없음), 1(비), 2(비/눈), 3(눈), 4(소나기)
             if ("1".equals(pty) || "4".equals(pty)) return "비";
             if ("2".equals(pty) || "3".equals(pty)) return "눈";
-            
+
             // SKY (하늘상태): 1(맑음), 3(구름많음), 4(흐림)
             if ("1".equals(sky)) return "맑음";
             if ("3".equals(sky)) return "구름많음";
@@ -105,6 +105,7 @@ public class WeatherApiClient implements WeatherService {
 
             return "알 수 없음";
         } catch (Exception e) {
+            // ★ 우회 코드 제거: 실제 에러 발생 시 정상적으로 502 에러를 던지도록 복구
             System.err.println("[WeatherApiClient] 기상청 API 연동 오류: " + e.getMessage());
             throw new CustomException(ErrorCode.WEATHER_API_ERROR);
         }

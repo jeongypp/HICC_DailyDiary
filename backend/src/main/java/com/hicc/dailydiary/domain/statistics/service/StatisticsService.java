@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,32 +23,39 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class StatisticsService {
 
-    private static final double MAX_SCALE_SCORE = 5.0; // 5점 척도 기준
-
     private final DiaryRepository diaryRepository;
     private final WeightRepository weightRepository;
 
     /**
-     * 주간 평균 감정 점수 조회 (-10점 ~ +10점 환산 기준)
+     * 주간 평균 감정 점수 조회 (-10점 ~ +10점 기준)
      */
     public StatisticsResponseDto.WeeklyAverageResponse getWeeklyAverageScore() {
-        LocalDate today = LocalDate.now();
+        // ★ 버그 5번 해결: 클라우드 환경에서도 항상 한국 시간(KST)을 기준으로 날짜 계산
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate startDate = today.minusDays(6);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         String startDateStr = startDate.format(formatter);
         String endDateStr = today.format(formatter);
 
-        // 1. 기존에 있는 다중 검색 쿼리를 활용해 최근 7일치 일기 한 번에 조회!
+        // 1. 최근 7일치 일기 한 번에 조회
         List<Diary> weeklyDiaries = diaryRepository.searchDiaries(startDateStr, endDateStr, null);
+
+        // ★ 성능 문제(N+1 쿼리) 해결: 조회된 일기들의 weightId를 모아서 한 번의 쿼리로 가중치 맵 구성
+        List<Long> weightIds = weeklyDiaries.stream()
+                .map(diary -> Long.valueOf(diary.getWeightId()))
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Weight> weightMap = weightRepository.findAllById(weightIds).stream()
+                .collect(Collectors.toMap(Weight::getId, w -> w));
 
         double totalScoreSum = 0.0;
         int validDaysCount = 0;
 
         // 2. 조회된 일기들의 점수를 계산
         for (Diary diary : weeklyDiaries) {
-            Weight weight = weightRepository.findById(Long.valueOf(diary.getWeightId()))
-                    .orElseThrow(() -> new IllegalArgumentException("가중치 정보를 찾을 수 없습니다."));
+            Weight weight = weightMap.get(Long.valueOf(diary.getWeightId()));
+            if (weight == null) continue;
 
             totalScoreSum += calculateDailyScore(diary, weight);
             validDaysCount++;
@@ -62,10 +70,11 @@ public class StatisticsService {
     }
 
     /**
-     * 최근 7일간의 일일 평균 감정 점수 추세 조회 (-10점 ~ +10점 환산 기준)
+     * 최근 7일간의 일일 평균 감정 점수 추세 조회 (-10점 ~ +10점 기준)
      */
     public StatisticsResponseDto.WeeklyTrendResponse getWeeklyTrend() {
-        LocalDate today = LocalDate.now();
+        // ★ 버그 5번 해결: 클라우드 환경 타임존 방어
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate startDate = today.minusDays(6);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -75,9 +84,17 @@ public class StatisticsService {
         // 1. 7일치 일기 한 번에 조회
         List<Diary> weeklyDiaries = diaryRepository.searchDiaries(startDateStr, endDateStr, null);
 
-        // 2. 날짜를 Key로 사용하여 쉽게 찾을 수 있도록 Map으로 변환
+        // 2. 날짜를 Key로, Diary를 Value로 매핑
         Map<String, Diary> diaryMap = weeklyDiaries.stream()
                 .collect(Collectors.toMap(Diary::getDiaryDate, d -> d));
+
+        // ★ 성능 문제(N+1 쿼리) 해결: 가중치 맵 구성
+        List<Long> weightIds = weeklyDiaries.stream()
+                .map(diary -> Long.valueOf(diary.getWeightId()))
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Weight> weightMap = weightRepository.findAllById(weightIds).stream()
+                .collect(Collectors.toMap(Weight::getId, w -> w));
 
         List<String> dates = new ArrayList<>();
         List<Double> weightedScores = new ArrayList<>();
@@ -86,17 +103,18 @@ public class StatisticsService {
             String dateString = today.minusDays(i).format(formatter);
             dates.add(dateString);
 
-            // 3. Map에서 해당 날짜의 일기가 있는지 확인
             Diary diary = diaryMap.get(dateString);
 
             if (diary != null) {
-                Weight weight = weightRepository.findById(Long.valueOf(diary.getWeightId()))
-                        .orElseThrow(() -> new IllegalArgumentException("가중치 정보를 찾을 수 없습니다."));
-
-                double dailyScore = calculateDailyScore(diary, weight);
-                weightedScores.add(Math.round(dailyScore * 10.0) / 10.0);
+                Weight weight = weightMap.get(Long.valueOf(diary.getWeightId()));
+                if (weight != null) {
+                    double dailyScore = calculateDailyScore(diary, weight);
+                    weightedScores.add(Math.round(dailyScore * 10.0) / 10.0);
+                } else {
+                    weightedScores.add(null);
+                }
             } else {
-                weightedScores.add(null); // 일기가 없으면 null
+                weightedScores.add(null);
             }
         }
 
@@ -107,35 +125,38 @@ public class StatisticsService {
     }
 
     /**
-     * [내부 로직] 일일 점수 환산 계산기 (-10점 ~ +10점 스케일)
+     * [내부 로직] 일일 점수 계산기 (가중 평균)
+     * ★ 버그 4번 해결: null(미입력)인 점수는 강제로 0점 처리하지 않고, 평균 계산에서 완전히 제외시킵니다.
      */
     private double calculateDailyScore(Diary diary, Weight weight) {
-        // null 값 방어 (Integer 래퍼 클래스 처리)
-        int score1 = diary.getScore1() != null ? diary.getScore1() : 0;
-        int score2 = diary.getScore2() != null ? diary.getScore2() : 0;
-        int score3 = diary.getScore3() != null ? diary.getScore3() : 0;
-        int score4 = diary.getScore4() != null ? diary.getScore4() : 0;
-        int score5 = diary.getScore5() != null ? diary.getScore5() : 0;
+        double weightedScoreSum = 0.0;
+        double validTotalWeight = 0.0;
 
-        double totalWeight = weight.getWeight1Value() + weight.getWeight2Value() +
-                weight.getWeight3Value() + weight.getWeight4Value() +
-                weight.getWeight5Value();
+        // 점수가 null이 아닐 때만 분자(점수*가중치)와 분모(가중치)에 누적 합산
+        if (diary.getScore1() != null) {
+            weightedScoreSum += (diary.getScore1() * weight.getWeight1Value());
+            validTotalWeight += weight.getWeight1Value();
+        }
+        if (diary.getScore2() != null) {
+            weightedScoreSum += (diary.getScore2() * weight.getWeight2Value());
+            validTotalWeight += weight.getWeight2Value();
+        }
+        if (diary.getScore3() != null) {
+            weightedScoreSum += (diary.getScore3() * weight.getWeight3Value());
+            validTotalWeight += weight.getWeight3Value();
+        }
+        if (diary.getScore4() != null) {
+            weightedScoreSum += (diary.getScore4() * weight.getWeight4Value());
+            validTotalWeight += weight.getWeight4Value();
+        }
+        if (diary.getScore5() != null) {
+            weightedScoreSum += (diary.getScore5() * weight.getWeight5Value());
+            validTotalWeight += weight.getWeight5Value();
+        }
 
-        if (totalWeight == 0) return 0.0; // 분모가 0이 되는 오류 방지
+        // 모든 점수를 입력하지 않아 가중치 합이 0인 경우 방어 로직
+        if (validTotalWeight == 0) return 0.0;
 
-        double weightedScoreSum = (score1 * weight.getWeight1Value()) +
-                (score2 * weight.getWeight2Value()) +
-                (score3 * weight.getWeight3Value()) +
-                (score4 * weight.getWeight4Value()) +
-                (score5 * weight.getWeight5Value());
-
-        // 1. 만점 대비 현재 획득 점수의 비율을 구합니다. (결과: -1.0 ~ 1.0 사이의 값)
-        double ratio = weightedScoreSum / (MAX_SCALE_SCORE * totalWeight);
-
-        // 2. -1.0 ~ 1.0 범위를 -10 ~ 10 점으로 직관적으로 환산합니다.
-        // ex) 최하점(-1.0) -> -10.0점
-        // ex) 중간점( 0.0) ->   0.0점
-        // ex) 최고점(+1.0) -> +10.0점
-        return ratio * 10.0;
+        return weightedScoreSum / validTotalWeight;
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class GeminiApiClient implements AiService {
     @Value("${gemini.api.key:default_key}")
     private String apiKey;
 
+    // 말씀하신 무료 모델(gemini-3.1-flash-lite) URL 그대로 유지했습니다.
     @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent}")
     private String apiUrl;
 
@@ -33,57 +35,54 @@ public class GeminiApiClient implements AiService {
 
     @Override
     public String getAiFeedback(List<String> domainNames, List<Integer> rawScores, List<Integer> weights, String memo) {
-        // API Key 유효성 사전 체크
+
+        // 1. API Key 유효성 사전 체크
         if ("default_key".equals(apiKey) || apiKey == null || apiKey.isBlank()) {
-            System.err.println("[GeminiApiClient] ⚠️ GEMINI_API_KEY 환경변수가 설정 오류입니다.");
+            System.err.println("[GeminiApiClient] ⚠️ GEMINI_API_KEY 환경변수 설정 오류입니다.");
             return "AI 피드백을 생성하려면 Gemini API 키 설정이 필요합니다.";
         }
 
-        boolean hasMemo = (memo != null && !memo.isBlank());
-
-        // 1. AI 요청 프롬프트 구성
-        StringBuilder sb = new StringBuilder();
-        sb.append("사용자의 오늘 일기 데이터입니다. 'AI 해석 지시사항'을 엄격하게 준수하여 심리 상담사이자 다정한 친구처럼(본인의 역할 언급 금지) 공감하고 위로해주는 ~해요체의 짧은 피드백(2~3문장)을 작성해 주세요.\n\n");
-        
-        sb.append("[오늘의 감정 및 평소 가치관]\n");
+        // 2. 원점수(rawScores)와 가중치(weights)를 곱해서 가중 점수 계산
+        List<Integer> weightedScores = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            sb.append("- ").append(domainNames.get(i))
-              .append(": 오늘 감정점수 ").append(rawScores.get(i)).append("점 (범위: -10 ~ 10점)")
-              .append(" / 평소 중요도 ").append(weights.get(i)).append("배 (최대 10배)\n");
+            weightedScores.add(rawScores.get(i) * weights.get(i));
         }
-        sb.append("\n[사용자가 직접 작성한 추가 메모]\n");
-        sb.append(hasMemo ? memo : "추가메모 없음");
-        
-        sb.append("\n\n['AI 해석 지시사항' - 반드시 지킬 것]\n");
-        sb.append("1. (가장 중요) 사용자가 '추가 메모'를 작성했다면, 다른 모든 점수보다 메모의 내용을 최우선으로 분석하여 깊게 공감하고 위로해 주세요.\n");
-        sb.append("2. 평소 중요도가 낮더라도, 오늘 유독 극단적인 점수(+10점 만점, 혹은 -10점 최하점)를 받은 영역에 차선으로 분석시 집중해 주세요.\n");
-        sb.append("3. (절대 수칙) 피드백 문장에 '10점', '중요도', '가중치' 같은 기계적인 수치나 단어는 일절 직접 언급하지 마세요.\n");
-        
+
+        // 3. 프롬프트 구성: 영역별 가중 점수와 추가 메모를 조합
+        StringBuilder sb = new StringBuilder();
+        sb.append("다음 일기 내용(5대 감정 영역명, 영역별 일일 감정 점수, 사용자 추가 메모(NULLABLE: '추가메모 없음'시 감정 영역별 점수에 집중한 답변 생성))을 읽고, 상담사이자 친구처럼 다정하게 공감하고 위로해주는 ~해요체의 짧은 피드백을 한국어로 2~3문장으로 작성해 줘:\n\n");
+        sb.append("[오늘의 영역별 평가 점수]\n");
+        for (int i = 0; i < 5; i++) {
+            sb.append("- ").append(domainNames.get(i)).append(": ").append(weightedScores.get(i)).append("점 (범위: -100 ~ 100점)\n");
+        }
+        sb.append("\n[추가 메모(일기)]\n");
+        sb.append(memo != null && !memo.isBlank() ? memo : "추가메모 없음");
+
         String prompt = sb.toString();
 
-        // 2. Gemini API 요청 바디 구성
+        // 4. Gemini API 요청 바디 구성
         Map<String, Object> requestBody = Map.of(
-            "contents", List.of(
-                Map.of("parts", List.of(
-                    Map.of("text", prompt)
-                ))
-            )
+                "contents", List.of(
+                        Map.of("parts", List.of(
+                                Map.of("text", prompt)
+                        ))
+                )
         );
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         String url = apiUrl + "?key=" + apiKey;
 
-        // 429 에러 시 자동 재시도 (최대 3회, 간격 점점 증가)
+        // 5. 429 에러 시 자동 재시도 (최대 3회, 간격 점점 증가)
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
                 System.out.println("[GeminiApiClient] Gemini API 호출 중... (시도 " + attempt + "/" + MAX_RETRIES + ")");
                 ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
                 System.out.println("[GeminiApiClient] ✅ Gemini API 응답 수신 (HTTP " + response.getStatusCode() + ")");
-                
-                // 3. 응답 파싱 (Gemini 응답 구조: candidates[0].content.parts[0].text)
+
+                // 6. 응답 파싱
                 Map<String, Object> body = response.getBody();
                 if (body != null && body.containsKey("candidates")) {
                     List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
@@ -93,17 +92,28 @@ public class GeminiApiClient implements AiService {
                         return (String) parts.get(0).get("text");
                     }
                 }
+
                 System.err.println("[GeminiApiClient] ⚠️ 예기치 못한 응답 구조: " + body);
-                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+                throw new RuntimeException("Invalid response structure");
 
             } catch (Exception e) {
-                System.err.println("[GeminiApiClient] ❌ Gemini API 호출 실패: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+                System.err.println("[GeminiApiClient] ❌ Gemini API 호출 실패 (시도 " + attempt + "): " + e.getMessage());
+
+                // 마지막 시도에만 최종 에러 반환
+                if (attempt == MAX_RETRIES) {
+                    System.err.println("[GeminiApiClient] ❌ " + MAX_RETRIES + "회 재시도 후에도 실패 지속.");
+                    throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+                }
+
+                // 다음 시도 전 1초 대기 (API 서버 과부하 방지)
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
 
-        // 3번 재시도 후에도 실패
-        System.err.println("[GeminiApiClient] ❌ " + MAX_RETRIES + "회 재시도 후에도 실패 지속.");
         throw new CustomException(ErrorCode.AI_SERVER_ERROR);
     }
 }

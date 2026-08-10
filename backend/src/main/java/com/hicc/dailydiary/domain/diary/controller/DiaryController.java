@@ -5,6 +5,7 @@ import com.hicc.dailydiary.domain.diary.service.DiaryService;
 import com.hicc.dailydiary.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid; // ★ 추가된 부분
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class DiaryController {
 
     @Operation(summary = "일기 작성", description = "선택한 날짜, 영역 점수, 추가 메모, 날씨를 바탕으로 새로운 일기 데이터를 저장합니다.")
     @PostMapping
-    public ApiResponse<DiaryIdResponse> createDiary(@RequestBody DiaryCreateRequest request) {
+    public ApiResponse<DiaryIdResponse> createDiary(@Valid @RequestBody DiaryCreateRequest request) { // ★ @Valid 추가됨
         Long savedId = diaryService.createDiary(request);
         return ApiResponse.success(
                 201,
