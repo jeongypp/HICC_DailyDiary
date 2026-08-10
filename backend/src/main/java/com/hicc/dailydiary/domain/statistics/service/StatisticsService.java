@@ -2,7 +2,6 @@ package com.hicc.dailydiary.domain.statistics.service;
 
 import com.hicc.dailydiary.domain.diary.entity.Diary;
 import com.hicc.dailydiary.domain.diary.repository.DiaryRepository;
-// TODO: Weight 패키지 경로는 실제 프로젝트에 맞게 수정해 주세요.
 import com.hicc.dailydiary.domain.setting.entity.Weight;
 import com.hicc.dailydiary.domain.setting.repository.WeightRepository;
 import com.hicc.dailydiary.domain.statistics.dto.StatisticsResponseDto;
@@ -29,7 +28,7 @@ public class StatisticsService {
     private final WeightRepository weightRepository;
 
     /**
-     * 주간 평균 감정 점수 조회 (100점 만점 기준)
+     * 주간 평균 감정 점수 조회 (-10점 ~ +10점 환산 기준)
      */
     public StatisticsResponseDto.WeeklyAverageResponse getWeeklyAverageScore() {
         LocalDate today = LocalDate.now();
@@ -50,7 +49,7 @@ public class StatisticsService {
             Weight weight = weightRepository.findById(Long.valueOf(diary.getWeightId()))
                     .orElseThrow(() -> new IllegalArgumentException("가중치 정보를 찾을 수 없습니다."));
 
-            totalScoreSum += calculateDailyScore100(diary, weight);
+            totalScoreSum += calculateDailyScore(diary, weight);
             validDaysCount++;
         }
 
@@ -63,7 +62,7 @@ public class StatisticsService {
     }
 
     /**
-     * 최근 7일간의 일일 평균 감정 점수 추세 조회 (100점 만점 기준)
+     * 최근 7일간의 일일 평균 감정 점수 추세 조회 (-10점 ~ +10점 환산 기준)
      */
     public StatisticsResponseDto.WeeklyTrendResponse getWeeklyTrend() {
         LocalDate today = LocalDate.now();
@@ -94,7 +93,7 @@ public class StatisticsService {
                 Weight weight = weightRepository.findById(Long.valueOf(diary.getWeightId()))
                         .orElseThrow(() -> new IllegalArgumentException("가중치 정보를 찾을 수 없습니다."));
 
-                double dailyScore = calculateDailyScore100(diary, weight);
+                double dailyScore = calculateDailyScore(diary, weight);
                 weightedScores.add(Math.round(dailyScore * 10.0) / 10.0);
             } else {
                 weightedScores.add(null); // 일기가 없으면 null
@@ -108,9 +107,9 @@ public class StatisticsService {
     }
 
     /**
-     * [내부 로직] 일일 점수 100점 만점 환산 계산기
+     * [내부 로직] 일일 점수 환산 계산기 (-10점 ~ +10점 스케일)
      */
-    private double calculateDailyScore100(Diary diary, Weight weight) {
+    private double calculateDailyScore(Diary diary, Weight weight) {
         // null 값 방어 (Integer 래퍼 클래스 처리)
         int score1 = diary.getScore1() != null ? diary.getScore1() : 0;
         int score2 = diary.getScore2() != null ? diary.getScore2() : 0;
@@ -130,6 +129,13 @@ public class StatisticsService {
                 (score4 * weight.getWeight4Value()) +
                 (score5 * weight.getWeight5Value());
 
-        return (weightedScoreSum / (MAX_SCALE_SCORE * totalWeight)) * 100.0;
+        // 1. 만점 대비 현재 획득 점수의 비율을 구합니다. (결과: -1.0 ~ 1.0 사이의 값)
+        double ratio = weightedScoreSum / (MAX_SCALE_SCORE * totalWeight);
+
+        // 2. -1.0 ~ 1.0 범위를 -10 ~ 10 점으로 직관적으로 환산합니다.
+        // ex) 최하점(-1.0) -> -10.0점
+        // ex) 중간점( 0.0) ->   0.0점
+        // ex) 최고점(+1.0) -> +10.0점
+        return ratio * 10.0;
     }
 }
