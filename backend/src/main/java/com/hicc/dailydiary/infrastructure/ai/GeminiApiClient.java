@@ -1,12 +1,11 @@
 package com.hicc.dailydiary.infrastructure.ai;
 
-import com.hicc.dailydiary.domain.ai.AiService;
+import com.hicc.dailydiary.domain.ai.service.AiService;
 import com.hicc.dailydiary.global.exception.CustomException;
 import com.hicc.dailydiary.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
@@ -24,7 +23,7 @@ public class GeminiApiClient implements AiService {
     @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent}")
     private String apiUrl;
 
-    private static final int MAX_RETRIES = 3;
+    private static final int MAX_RETRIES = 3; // 서버 오류 시 재시도 횟수(API 토큰 과다사용 방지)
 
     private final RestTemplate restTemplate;
 
@@ -33,22 +32,22 @@ public class GeminiApiClient implements AiService {
     }
 
     @Override
-    public String getAiFeedback(List<String> domains, List<Integer> scores, String memo) {
+    public String getAiFeedback(List<String> domainNames, List<Integer> weightedScores, String memo) {
         // API Key 유효성 사전 체크
         if ("default_key".equals(apiKey) || apiKey == null || apiKey.isBlank()) {
-            System.err.println("[GeminiApiClient] ⚠️ GEMINI_API_KEY 환경변수가 설정되지 않았습니다.");
+            System.err.println("[GeminiApiClient] ⚠️ GEMINI_API_KEY 환경변수가 설정 오류입니다.");
             return "AI 피드백을 생성하려면 Gemini API 키 설정이 필요합니다.";
         }
 
-        // 1. 프롬프트 구성: 영역별 점수와 일기 메모를 조합
+        // 1. 프롬프트 구성: 영역별 가중 점수와 추가 메모를 조합
         StringBuilder sb = new StringBuilder();
-        sb.append("다음 일기 내용을 읽고, 친구처럼 다정하게 공감하고 위로해주는 짧은 피드백을 한국어로 2~3문장으로 작성해 줘:\n\n");
+        sb.append("다음 일기 내용(5대 감정 영역명, 영역별 일일 감정 점수, 사용자 추가 메모(NULLABLE: '추가메모 없음'시 감정 영역별 점수에 집중한 답변 생성))을 읽고, 상담사이자 친구처럼 다정하게 공감하고 위로해주는 ~해요체의 짧은 피드백을 한국어로 2~3문장으로 작성해 줘:\n\n");
         sb.append("[오늘의 영역별 평가 점수]\n");
         for (int i = 0; i < 5; i++) {
-            sb.append("- ").append(domains.get(i)).append(": ").append(scores.get(i)).append("점 (최대 10점)\n");
+            sb.append("- ").append(domainNames.get(i)).append(": ").append(weightedScores.get(i)).append("점 (범위: -100 ~ 100점)\n");
         }
         sb.append("\n[추가 메모(일기)]\n");
-        sb.append(memo != null && !memo.isBlank() ? memo : "특별한 메모는 남기지 않았어요.");
+        sb.append(memo != null && !memo.isBlank() ? memo : "추가메모 없음");
         
         String prompt = sb.toString();
 
@@ -74,7 +73,7 @@ public class GeminiApiClient implements AiService {
                 ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
                 System.out.println("[GeminiApiClient] ✅ Gemini API 응답 수신 (HTTP " + response.getStatusCode() + ")");
                 
-                // 4. 응답 파싱 (Gemini 응답 구조: candidates[0].content.parts[0].text)
+                // 3. 응답 파싱 (Gemini 응답 구조: candidates[0].content.parts[0].text)
                 Map<String, Object> body = response.getBody();
                 if (body != null && body.containsKey("candidates")) {
                     List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
@@ -87,25 +86,6 @@ public class GeminiApiClient implements AiService {
                 System.err.println("[GeminiApiClient] ⚠️ 예기치 못한 응답 구조: " + body);
                 throw new CustomException(ErrorCode.AI_SERVER_ERROR);
 
-                /* 
-                 * [백엔드 개발 단계의 에러 핸들링]
-                 * 기존 429, 404 등의 세부 에러 핸들링은 명세서에 정의된 
-                 * AI_SERVER_ERROR (500) 로 통합하기 위해 주석 처리합니다.
-                 *
-            } catch (HttpClientErrorException.TooManyRequests e) {
-                long waitSeconds = attempt * 10L;
-                System.err.println("[GeminiApiClient] ⏳ 429 할당량 초과 (시도 " + attempt + ") → " + waitSeconds + "초 후 재시도...");
-                try {
-                    Thread.sleep(waitSeconds * 1000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new CustomException(ErrorCode.AI_SERVER_ERROR);
-                }
-            } catch (HttpClientErrorException e) {
-                System.err.println("[GeminiApiClient] ❌ HTTP 에러: " + e.getStatusCode() + " - " + e.getStatusText());
-                System.err.println("[GeminiApiClient] ❌ 구글 API 상세 에러 내용: " + e.getResponseBodyAsString());
-                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
-                 */
             } catch (Exception e) {
                 System.err.println("[GeminiApiClient] ❌ Gemini API 호출 실패: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                 throw new CustomException(ErrorCode.AI_SERVER_ERROR);
