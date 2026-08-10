@@ -1,4 +1,4 @@
-package com.hicc.dailydiary.domain.ai;
+package com.hicc.dailydiary.domain.ai.service;
 
 import java.util.List;
 

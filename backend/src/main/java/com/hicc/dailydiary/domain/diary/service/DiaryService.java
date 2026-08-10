@@ -3,7 +3,7 @@ package com.hicc.dailydiary.domain.diary.service;
 import com.hicc.dailydiary.domain.diary.dto.*;
 import com.hicc.dailydiary.domain.diary.entity.Diary;
 import com.hicc.dailydiary.domain.diary.repository.DiaryRepository;
-import com.hicc.dailydiary.domain.ai.AiService;
+import com.hicc.dailydiary.domain.ai.service.AiService;
 import com.hicc.dailydiary.domain.weather.WeatherService;
 import com.hicc.dailydiary.global.exception.CustomException;
 import com.hicc.dailydiary.global.exception.ErrorCode;
@@ -32,9 +32,8 @@ public class DiaryService {
         // MVP 단계: 서울 마포구 서교동 (홍익대학교 인근) 좌표 고정 (nx=58, ny=127)
         String weather = weatherService.getWeatherCondition(58, 127);
         
-        List<String> domainNames = getMockDomainNames(request.getDomainId());
-        List<Integer> scores = List.of(request.getScore1(), request.getScore2(), request.getScore3(), request.getScore4(), request.getScore5());
-        String aiReplyMock = aiService.getAiFeedback(domainNames, scores, request.getMemo());
+        // AI 호출 분리: DiaryCreate 에서는 null 로 초기화
+        String aiReplyMock = null;
 
         Diary diary = Diary.builder()
                 .diaryDate(request.getDiaryDate())
@@ -67,13 +66,6 @@ public class DiaryService {
                 request.getScore5(),
                 request.getMemo()
         );
-
-        // TODO: AI API 연결 후 실제 값으로 교체
-        // 메모 수정 -> AI 피드백 재생성
-        List<String> domainNames = getMockDomainNames(diary.getDomainId());
-        List<Integer> updatedScores = List.of(request.getScore1(), request.getScore2(), request.getScore3(), request.getScore4(), request.getScore5());
-        String aiReplyMock = aiService.getAiFeedback(domainNames, updatedScores, request.getMemo());
-        diary.updateAiReply(aiReplyMock);
 
         return diary.getId();
     }
@@ -137,6 +129,29 @@ public class DiaryService {
                 diary.getMemo(),
                 diary.getAiReply()
         );
+    }
+
+    // 11. AI 피드백 생성용: 영역이름과 가중치 계산 후 추가메모와 함께 AiService에 전달
+    @Transactional
+    public String generateAndSaveAiFeedback(Long diaryId) {
+        Diary diary = diaryRepository.findByIdAndIsDeletedFalse(diaryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
+
+        List<String> domainNames = getMockDomainNames(diary.getDomainId());
+        List<Integer> weights = getMockWeights(diary.getWeightId());
+
+        // 가중치 적용
+        List<Integer> weightedScores = List.of(
+                diary.getScore1() * weights.get(0),
+                diary.getScore2() * weights.get(1),
+                diary.getScore3() * weights.get(2),
+                diary.getScore4() * weights.get(3),
+                diary.getScore5() * weights.get(4)
+        );
+
+        String aiReply = aiService.getAiFeedback(domainNames, weightedScores, diary.getMemo());
+        diary.updateAiReply(aiReply);
+        return aiReply;
     }
 
     // 6. 일기 검색
