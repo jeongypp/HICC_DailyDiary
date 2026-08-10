@@ -3,6 +3,9 @@ package com.hicc.dailydiary.domain.diary.service;
 import com.hicc.dailydiary.domain.diary.dto.*;
 import com.hicc.dailydiary.domain.diary.entity.Diary;
 import com.hicc.dailydiary.domain.diary.repository.DiaryRepository;
+import com.hicc.dailydiary.domain.setting.entity.Domain;
+import com.hicc.dailydiary.domain.setting.entity.Weight;
+import com.hicc.dailydiary.domain.setting.service.SettingService;
 import com.hicc.dailydiary.domain.ai.service.AiService;
 import com.hicc.dailydiary.domain.weather.WeatherService;
 import com.hicc.dailydiary.global.exception.CustomException;
@@ -21,6 +24,7 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final AiService aiService;
     private final WeatherService weatherService;
+    private final SettingService settingService;
 
     @Transactional
     // 1. 일기 작성(생성)
@@ -85,7 +89,11 @@ public class DiaryService {
         List<Diary> diaries = diaryRepository.findByDiaryDateStartingWithAndIsDeletedFalse(yearMonth);
 
         return diaries.stream().map(diary -> {
-            List<Integer> weights = getMockWeights(diary.getWeightId());
+            Weight weightObj = settingService.getWeightById(diary.getWeightId());
+            List<Integer> weights = List.of(
+                    weightObj.getWeight1Value(), weightObj.getWeight2Value(),
+                    weightObj.getWeight3Value(), weightObj.getWeight4Value(), weightObj.getWeight5Value()
+            );
 
             // 각 영역 원점수에 가중치(1~10배)를 곱하여 합산
             int weightedSum = diary.getScore1() * weights.get(0)
@@ -94,7 +102,11 @@ public class DiaryService {
                     + diary.getScore4() * weights.get(3)
                     + diary.getScore5() * weights.get(4);
             
-            int avgScore = weightedSum / 5;
+            // 총 가중치 합산
+            int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
+            
+            // 일일 가중 평균 점수 계산 (결과 범위: -10 ~ 10): 가중평균 방식으로 비율적 일치
+            int avgScore = totalWeight > 0 ? (int) Math.round((double) weightedSum / totalWeight) : 0;
 
             return new DiaryMonthlyResponse(
                     diary.getId(),
@@ -109,7 +121,11 @@ public class DiaryService {
         Diary diary = diaryRepository.findByIdAndIsDeletedFalse(diaryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
 
-        List<String> domainNames = getMockDomainNames(diary.getDomainId());
+        Domain domain = settingService.getDomainById(diary.getDomainId());
+        List<String> domainNames = List.of(
+                domain.getDomain1Name(), domain.getDomain2Name(),
+                domain.getDomain3Name(), domain.getDomain4Name(), domain.getDomain5Name()
+        );
 
         // 가중치 미반영 원점수(오각형 차트 UI)
         List<Integer> domainScores = List.of(
@@ -129,29 +145,6 @@ public class DiaryService {
                 diary.getMemo(),
                 diary.getAiReply()
         );
-    }
-
-    // 11. AI 피드백 생성용: 영역이름과 가중치 계산 후 추가메모와 함께 AiService에 전달
-    @Transactional
-    public String generateAndSaveAiFeedback(Long diaryId) {
-        Diary diary = diaryRepository.findByIdAndIsDeletedFalse(diaryId)
-                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
-
-        List<String> domainNames = getMockDomainNames(diary.getDomainId());
-        List<Integer> weights = getMockWeights(diary.getWeightId());
-
-        // 가중치 적용
-        List<Integer> weightedScores = List.of(
-                diary.getScore1() * weights.get(0),
-                diary.getScore2() * weights.get(1),
-                diary.getScore3() * weights.get(2),
-                diary.getScore4() * weights.get(3),
-                diary.getScore5() * weights.get(4)
-        );
-
-        String aiReply = aiService.getAiFeedback(domainNames, weightedScores, diary.getMemo());
-        diary.updateAiReply(aiReply);
-        return aiReply;
     }
 
     // 6. 일기 검색
@@ -190,16 +183,34 @@ public class DiaryService {
         return prefix + highlighted + suffix;
     }
 
-    // TODO: setting >> SettingService 호출로 실제 값 교체
-    private List<Integer> getMockWeights(Integer weightId) {
-        // 실제로는 weight_id를 통해 weight 테이블에서 weight1_value ~ weight5_value 를 조회해와야 함.
-        return List.of(1, 2, 3, 2, 1); // 임시 가중치 값 (1~10배)
-    }
+    // 11. AI 피드백 생성용: 영역이름과 가중치 계산 후 추가메모와 함께 AiService에 전달
+    @Transactional
+    public String generateAndSaveAiFeedback(Long diaryId) {
+        Diary diary = diaryRepository.findByIdAndIsDeletedFalse(diaryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
 
-    // TODO: setting 패키지 로직 pull 이후 실제 값으로 교체
-    private List<String> getMockDomainNames(Integer domainId) {
-        // 실제로는 domain_id를 통해 domain 테이블에서 domain1_name ~ domain5_name 을 조회해와야 함.
-        return List.of("수면", "식사", "학업", "관계", "운동");
-    }
+        Domain domain = settingService.getDomainById(diary.getDomainId());
+        List<String> domainNames = List.of(
+                domain.getDomain1Name(), domain.getDomain2Name(),
+                domain.getDomain3Name(), domain.getDomain4Name(), domain.getDomain5Name()
+        );
 
+        Weight weightObj = settingService.getWeightById(diary.getWeightId());
+        List<Integer> weights = List.of(
+                weightObj.getWeight1Value(), weightObj.getWeight2Value(),
+                weightObj.getWeight3Value(), weightObj.getWeight4Value(), weightObj.getWeight5Value()
+        );
+
+        List<Integer> rawScores = List.of(
+                diary.getScore1(),
+                diary.getScore2(),
+                diary.getScore3(),
+                diary.getScore4(),
+                diary.getScore5()
+        );
+
+        String aiReply = aiService.getAiFeedback(domainNames, rawScores, weights, diary.getMemo());
+        diary.updateAiReply(aiReply);
+        return aiReply;
+    }
 }
