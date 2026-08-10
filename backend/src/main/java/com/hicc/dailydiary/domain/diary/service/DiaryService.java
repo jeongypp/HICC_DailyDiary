@@ -29,9 +29,8 @@ public class DiaryService {
             throw new CustomException(ErrorCode.DIARY_ALREADY_EXISTS);
         }
 
-        // TODO: AI API 연결 후 실제 값으로 교체
-        // Mock API 호출 (실제 구현 전 임시용)
-        String weatherMock = weatherService.getWeatherCondition(60, 127); // 서울 좌표 임시 사용
+        // MVP 단계: 서울 마포구 서교동 (홍익대학교 인근) 좌표 고정 (nx=58, ny=127)
+        String weather = weatherService.getWeatherCondition(58, 127);
         
         List<String> domainNames = getMockDomainNames(request.getDomainId());
         List<Integer> scores = List.of(request.getScore1(), request.getScore2(), request.getScore3(), request.getScore4(), request.getScore5());
@@ -46,7 +45,7 @@ public class DiaryService {
                 .score3(request.getScore3())
                 .score4(request.getScore4())
                 .score5(request.getScore5())
-                .weather(weatherMock)
+                .weather(weather)
                 .memo(request.getMemo())
                 .aiReply(aiReplyMock)
                 .build();

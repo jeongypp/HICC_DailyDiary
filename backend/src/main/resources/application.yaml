@@ -41,3 +41,9 @@ gemini:
   api:
     url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent
     key: ${GEMINI_API_KEY:default_key}
+
+# 공공데이터포털(data.go.kr) 날씨정보 API 환경변수 매핑
+weather:
+  api:
+    url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst
+    key: ${WEATHER_API_KEY:default_key}

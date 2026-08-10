@@ -19,7 +19,10 @@ public enum ErrorCode {
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다."),
-    AI_SERVER_ERROR(500, "AI_SERVER_ERROR", "AI API 서버 연동 실패");
+    AI_SERVER_ERROR(500, "AI_SERVER_ERROR", "AI API 서버 연동 실패"),
+
+    // 502 Bad Gateway
+    WEATHER_API_ERROR(502, "WEATHER_API_ERROR", "공공데이터포털 기상청 서버의 응답 지연 또는 장애 발생");
 
     private final int status;
     private final String code;
