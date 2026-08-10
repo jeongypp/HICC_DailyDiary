@@ -18,6 +18,18 @@ public class SettingService {
 
     private final DomainRepository domainRepository;
     private final WeightRepository weightRepository;
+    // 1. 특정 ID의 도메인(영역명) 정보 제공
+    public Domain getDomainById(Integer domainId) {
+        return domainRepository.findById(domainId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("DOMAIN_NOT_FOUND"));
+    }
+
+    // 2. 특정 ID의 가중치 정보 제공
+    // 2. 특정 ID의 가중치 정보 제공
+    public Weight getWeightById(Integer weightId) {
+        return weightRepository.findById(weightId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("WEIGHT_NOT_FOUND"));
+    }
 
     // [수정된 로직] 진짜 '최신(Latest)' 도메인 및 가중치 조회 (GET)
     public DomainLatestResponseDto getLatestDomainAndWeight() {
