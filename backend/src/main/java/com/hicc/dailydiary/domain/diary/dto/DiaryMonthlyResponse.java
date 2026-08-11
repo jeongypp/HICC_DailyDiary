@@ -16,6 +16,6 @@ public class DiaryMonthlyResponse {
     @Schema(description = "작성 날짜", example = "2026-07-22")
     private String diaryDate; //[cite: 5]
 
-    @Schema(description = "가중치 반영 평균 점수", example = "65")
+    @Schema(description = "일일 감정 가중 평균 점수 (-10 ~ 10)", example = "8")
     private Integer weightedAvg; //[cite: 5]
 }
