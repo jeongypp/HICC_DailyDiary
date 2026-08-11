@@ -13,12 +13,12 @@ BE: Spring boot & Java
 
 DB: H2 Database / MySQL
 
-API: Google Geminai 3.0 Flash API
+API: Google Geminai 3.1 Flash-Lite / data.go.kr 기상청_단기예보 조회
 
-# 실행 방법(TBD)
-로컬 환경
+# 실행 방법
+백엔드 로컬 환경 + 프론트엔드 vercel.app
 
-# 폴더 구조(TBD)
+# 폴더 구조
 도메인형 폴더 구조
 
 # 팀원 소개

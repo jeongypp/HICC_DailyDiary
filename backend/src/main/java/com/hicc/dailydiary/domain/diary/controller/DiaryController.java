@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Diary API", description = "일기 작성, 조회, 수정, 삭제 관련 API")
+@Tag(name = "Diary API", description = "일기 작성, 조회, 수정, 삭제, 검색 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/diaries")
