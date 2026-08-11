@@ -36,6 +36,9 @@ public class DiaryCreateRequest {
     @Schema(description = "영역별 점수 5 (-10~10)", example = "9")
     private Integer score5; //[cite: 3]
 
+    @Schema(description = "날씨 (프론트엔드에서 조회 후 전달)", example = "맑음")
+    private String weather;
+
     @Schema(description = "추가 메모", example = "오늘은 비가 와서 기분이 처진다.", nullable = true)
     private String memo;
 }

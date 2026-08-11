@@ -32,9 +32,6 @@ public class DiaryService {
         if (diaryRepository.existsByDiaryDateAndIsDeletedFalse(request.getDiaryDate())) {
             throw new CustomException(ErrorCode.DIARY_ALREADY_EXISTS);
         }
-
-        // MVP 단계: 서울 마포구 서교동 (홍익대학교 인근) 좌표 고정 (nx=58, ny=127)
-        String weather = weatherService.getWeatherCondition(58, 127);
         
         // AI 호출 분리: DiaryCreate 에서는 null 로 초기화
         String aiReplyMock = null;
@@ -48,9 +45,8 @@ public class DiaryService {
                 .score3(request.getScore3())
                 .score4(request.getScore4())
                 .score5(request.getScore5())
-                .weather(weather)
+                .weather(request.getWeather())
                 .memo(request.getMemo())
-                .aiReply(aiReplyMock)
                 .build();
 
         return diaryRepository.save(diary).getId();
@@ -177,10 +173,9 @@ public class DiaryService {
         String suffix = (endIndex < memo.length()) ? "..." : "";
 
         String snippet = memo.substring(startIndex, endIndex);
-        // 프론트엔드에서 <strong> 태그를 인식하여 볼드 및 색상 처리
-        String highlighted = snippet.replace(keyword, "<strong class=\"font-extrabold text-brand-600 dark:text-brand-400\">" + keyword + "</strong>");
 
-        return prefix + highlighted + suffix;
+        // 프론트엔드에서 자체적으로 검색 키워드 하이라이팅 처리.
+        return prefix + snippet + suffix;
     }
 
     // 11. AI 피드백 생성용: 영역이름과 가중치 계산 후 추가메모와 함께 AiService에 전달
