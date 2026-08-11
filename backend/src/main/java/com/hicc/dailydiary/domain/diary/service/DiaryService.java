@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -33,6 +35,10 @@ public class DiaryService {
             throw new CustomException(ErrorCode.DIARY_ALREADY_EXISTS);
         }
         
+        // 오늘 날짜인지 확인하여, 과거 밀린 일기면 날씨를 저장하지 않음(null)
+        String todayDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String weatherToSave = request.getDiaryDate().equals(todayDate) ? request.getWeather() : null;
+
         // AI 호출 분리: DiaryCreate 에서는 null 로 초기화
         String aiReplyMock = null;
 
@@ -45,7 +51,7 @@ public class DiaryService {
                 .score3(request.getScore3())
                 .score4(request.getScore4())
                 .score5(request.getScore5())
-                .weather(request.getWeather())
+                .weather(weatherToSave)
                 .memo(request.getMemo())
                 .build();
 
