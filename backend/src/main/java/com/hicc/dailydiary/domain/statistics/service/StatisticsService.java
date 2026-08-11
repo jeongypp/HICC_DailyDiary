@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,16 +28,20 @@ public class StatisticsService {
     private final WeightRepository weightRepository;
 
     /**
-     * 주간 평균 감정 점수 조회 (-10점 ~ +10점 기준)
+     * 주간 평균 감정 점수 조회 (해당 주간: 월~일 고정, -10점 ~ +10점 기준)
      */
     public StatisticsResponseDto.WeeklyAverageResponse getWeeklyAverageScore() {
         LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusDays(6);
+        // 무조건 이번 주 월요일을 시작일로!
+        LocalDate startDate = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        // 무조건 이번 주 일요일을 종료일로!
+        LocalDate endDate = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         String startDateStr = startDate.format(formatter);
-        String endDateStr = today.format(formatter);
+        String endDateStr = endDate.format(formatter);
 
+        // 월~일 7일치 일기 조회
         List<Diary> weeklyDiaries = diaryRepository.searchDiaries(startDateStr, endDateStr, null);
 
         double totalScoreSum = 0.0;
@@ -58,15 +64,17 @@ public class StatisticsService {
     }
 
     /**
-     * 최근 7일간의 일일 평균 감정 점수 추세 조회 (-10점 ~ +10점 기준)
+     * 해당 주간(월~일)의 일일 평균 감정 점수 추세 조회 (-10점 ~ +10점 기준)
      */
     public StatisticsResponseDto.WeeklyTrendResponse getWeeklyTrend() {
         LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusDays(6);
+        // 무조건 이번 주 월요일부터 일요일까지 픽스!
+        LocalDate startDate = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate endDate = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         String startDateStr = startDate.format(formatter);
-        String endDateStr = today.format(formatter);
+        String endDateStr = endDate.format(formatter);
 
         List<Diary> weeklyDiaries = diaryRepository.searchDiaries(startDateStr, endDateStr, null);
 
@@ -76,8 +84,9 @@ public class StatisticsService {
         List<String> dates = new ArrayList<>();
         List<Double> weightedScores = new ArrayList<>();
 
-        for (int i = 6; i >= 0; i--) {
-            String dateString = today.minusDays(i).format(formatter);
+        // 오늘 기준이 아니라, 무조건 '월요일(startDate)'부터 '일요일'까지 7번 반복
+        for (int i = 0; i < 7; i++) {
+            String dateString = startDate.plusDays(i).format(formatter);
             dates.add(dateString);
 
             Diary diary = diaryMap.get(dateString);
@@ -100,8 +109,7 @@ public class StatisticsService {
     }
 
     /**
-     * [내부 로직] 일일 점수 환산 계산기
-     * 입력 자체가 -10~10이므로 단순 가중 평균만 구하면 됩니다.
+     * [내부 로직] 일일 점수 환산 계산기 (-10~10 가중 평균)
      */
     private double calculateDailyScore(Diary diary, Weight weight) {
         int score1 = diary.getScore1() != null ? diary.getScore1() : 0;
@@ -122,7 +130,6 @@ public class StatisticsService {
                 (score4 * weight.getWeight4Value()) +
                 (score5 * weight.getWeight5Value());
 
-        // 비율 공식 없이 점수 총합을 가중치 총합으로 나누면 끝! (-10.0 ~ 10.0 산출)
         return weightedScoreSum / totalWeight;
     }
 }
