@@ -39,9 +39,6 @@ public class DiaryService {
         String todayDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String weatherToSave = request.getDiaryDate().equals(todayDate) ? request.getWeather() : null;
 
-        // AI 호출 분리: DiaryCreate 에서는 null 로 초기화
-        String aiReplyMock = null;
-
         Diary diary = Diary.builder()
                 .diaryDate(request.getDiaryDate())
                 .domainId(request.getDomainId())
