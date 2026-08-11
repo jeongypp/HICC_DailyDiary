@@ -2,8 +2,8 @@ package com.hicc.dailydiary.domain.statistics.controller;
 
 import com.hicc.dailydiary.domain.statistics.dto.StatisticsResponseDto;
 import com.hicc.dailydiary.domain.statistics.service.StatisticsService;
+import com.hicc.dailydiary.global.common.ApiResponse; // 추가
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,21 +16,30 @@ public class StatisticsController {
     private final StatisticsService statisticsService;
 
     /**
-     * 주간 평균 감정 점수 조회[cite: 1]
+     * 주간 평균 감정 점수 조회
      */
     @GetMapping("/average")
-    public ResponseEntity<StatisticsResponseDto.WeeklyAverageResponse> getWeeklyAverage() {
+    public ApiResponse<StatisticsResponseDto.WeeklyAverageResponse> getWeeklyAverage() {
         StatisticsResponseDto.WeeklyAverageResponse response = statisticsService.getWeeklyAverageScore();
-        // 실제 프로젝트의 공통 Response 포맷에 맞춰 수정 (예: return ApiResponse.success(response);)
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(
+                200,
+                "STAT_AVG_SUCCESS",
+                "주간 평균 점수 조회 성공",
+                response
+        );
     }
 
     /**
-     * 주간 감정 점수 추세 조회 (최근 7일)[cite: 2]
+     * 주간 감정 점수 추세 조회 (최근 7일)
      */
     @GetMapping("/weekly")
-    public ResponseEntity<StatisticsResponseDto.WeeklyTrendResponse> getWeeklyTrend() {
+    public ApiResponse<StatisticsResponseDto.WeeklyTrendResponse> getWeeklyTrend() {
         StatisticsResponseDto.WeeklyTrendResponse response = statisticsService.getWeeklyTrend();
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(
+                200,
+                "STAT_WEEKLY_SUCCESS",
+                "주간 추세 데이터 조회 성공",
+                response
+        );
     }
 }
