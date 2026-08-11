@@ -1,10 +1,13 @@
 package com.hicc.dailydiary.domain.setting.dto;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class) // 🔥 이 부분 추가
 public class DomainLatestResponseDto {
     private Long weightId;       // 가중치 버전 식별번호
     private Long domainId;       // 영역 이름 버전 식별번호[cite: 1]
