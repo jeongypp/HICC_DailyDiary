@@ -21,7 +21,7 @@ public class AiController {
     private final DiaryService diaryService;
 
     @Operation(summary = "AI 피드백 생성", description = "저장된 일기를 바탕으로 가중치와 영역을 반영해 AI 피드백을 생성하고 DB에 저장합니다.")
-    @PostMapping("/analyze")
+    @PostMapping
     public ApiResponse<AiAnalyzeResponse> analyzeDiary(@RequestBody AiAnalyzeRequest request) {
         String aiReply = diaryService.generateAndSaveAiFeedback(request.getDiaryId());
         return ApiResponse.success(200, "AI_ANALYZE_SUCCESS", "AI 피드백 생성 성공", new AiAnalyzeResponse(aiReply));
