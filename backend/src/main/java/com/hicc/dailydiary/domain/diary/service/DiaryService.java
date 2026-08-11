@@ -91,18 +91,25 @@ public class DiaryService {
                     weightObj.getWeight3Value(), weightObj.getWeight4Value(), weightObj.getWeight5Value()
             );
 
+            // not null
+            int s1 = diary.getScore1() != null ? diary.getScore1() : 0;
+            int s2 = diary.getScore2() != null ? diary.getScore2() : 0;
+            int s3 = diary.getScore3() != null ? diary.getScore3() : 0;
+            int s4 = diary.getScore4() != null ? diary.getScore4() : 0;
+            int s5 = diary.getScore5() != null ? diary.getScore5() : 0;
+
             // 각 영역 원점수에 가중치(1~10배)를 곱하여 합산
-            int weightedSum = diary.getScore1() * weights.get(0)
-                    + diary.getScore2() * weights.get(1)
-                    + diary.getScore3() * weights.get(2)
-                    + diary.getScore4() * weights.get(3)
-                    + diary.getScore5() * weights.get(4);
+            double weightedSum = s1 * weights.get(0)
+                    + s2 * weights.get(1)
+                    + s3 * weights.get(2)
+                    + s4 * weights.get(3)
+                    + s5 * weights.get(4);
             
             // 총 가중치 합산
-            int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
+            double totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
             
-            // 일일 가중 평균 점수 계산 (결과 범위: -10 ~ 10): 가중평균 방식으로 비율적 일치
-            int avgScore = totalWeight > 0 ? (int) Math.round((double) weightedSum / totalWeight) : 0;
+            // 일일 가중 평균 점수 계산 (-10.0 ~ 10.0)
+            double avgScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight * 10.0) / 10.0 : 0.0;
 
             return new DiaryMonthlyResponse(
                     diary.getId(),
@@ -158,7 +165,7 @@ public class DiaryService {
         }).toList();
     }
 
-    // 일기 검색 시 메모 프리뷰 기능(검색 키워드 볼드체 처리)
+    // 일기 검색 시 메모 프리뷰 기능
     private String generateMemoPreview(String memo, String keyword) {
         if (memo == null || memo.isBlank()) return "";
         if (keyword == null || keyword.isBlank() || !memo.contains(keyword)) {
@@ -174,7 +181,6 @@ public class DiaryService {
 
         String snippet = memo.substring(startIndex, endIndex);
 
-        // 프론트엔드에서 자체적으로 검색 키워드 하이라이팅 처리.
         return prefix + snippet + suffix;
     }
 
